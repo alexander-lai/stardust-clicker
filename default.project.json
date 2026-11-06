@@ -1,0 +1,40 @@
+{
+  "name": "stardust-clicker",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "Click": { "$className": "RemoteEvent" },
+        "BuyUpgrade": { "$className": "RemoteEvent" },
+        "HatchEgg": { "$className": "RemoteEvent" },
+        "Rebirth": { "$className": "RemoteEvent" },
+        "RequestState": { "$className": "RemoteEvent" },
+        "StateUpdate": { "$className": "RemoteEvent" },
+        "Notify": { "$className": "RemoteEvent" }
+      }
+    },
+    "ServerScriptService": {
+      "$path": "src/server"
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "$path": "src/client"
+      }
+    },
+    "StarterGui": {
+      "MainUI": {
+        "$className": "ScreenGui",
+        "$properties": {
+          "ResetOnSpawn": false
+        },
+        "ClickerUI": {
+          "$path": "src/gui/ClickerUI.client.luau"
+        }
+      }
+    }
+  }
+}
