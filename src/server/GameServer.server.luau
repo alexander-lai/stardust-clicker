@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Util = require(Shared:WaitForChild("Util"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
+local MapBuilder = require(script.Parent:WaitForChild("MapBuilder"))
 
 ---------------------------------------------------------------------------
 -- RemoteEvents (created automatically if they don't exist yet)
@@ -37,31 +38,12 @@ local RebirthRemote = getRemote("Rebirth") -- client -> server
 local RequestStateRemote = getRemote("RequestState") -- client -> server
 local StateUpdateRemote = getRemote("StateUpdate") -- server -> client (state table)
 local NotifyRemote = getRemote("Notify") -- server -> client (message, kind)
+local RollEggRemote = getRemote("RollEgg") -- client -> server
+local RollResultRemote = getRemote("RollResult") -- server -> client (eggName, isNew)
 
 ---------------------------------------------------------------------------
--- World setup: a ground to stand on (if missing) and a clickable Star Crystal
+-- World setup: the clickable Star Crystal (the map itself is in MapBuilder)
 ---------------------------------------------------------------------------
-local function setupWorld()
-	if not workspace:FindFirstChild("Baseplate") then
-		local base = Instance.new("Part")
-		base.Name = "Baseplate"
-		base.Size = Vector3.new(512, 20, 512)
-		base.Position = Vector3.new(0, -10, 0)
-		base.Anchored = true
-		base.Material = Enum.Material.Slate
-		base.Color = Color3.fromRGB(45, 40, 80)
-		base.Parent = workspace
-	end
-	if not workspace:FindFirstChildOfClass("SpawnLocation") then
-		local spawn = Instance.new("SpawnLocation")
-		spawn.Size = Vector3.new(8, 1, 8)
-		spawn.Position = Vector3.new(0, 0.5, 0)
-		spawn.Anchored = true
-		spawn.Neutral = true
-		spawn.Parent = workspace
-	end
-end
-
 local tryClick -- defined below, used by the crystal
 
 local function createStarCrystal()
@@ -113,10 +95,12 @@ end
 ---------------------------------------------------------------------------
 local leaderstatsValues = {} -- [player] = { Stardust = NumberValue, Rebirths = IntValue }
 local clickTracker = {} -- [player] = { windowStart = number, count = number }
+local lastRoll = {} -- [player] = os.clock() of their last egg roll
 local rng = Random.new()
 
 local function buildState(data)
 	local equipped = Config.GetEquippedPets(data.Pets)
+	local eggBoost, bestEgg = Config.GetBestEgg(data)
 	local upgradeCosts = {}
 	for id in pairs(Config.Upgrades) do
 		upgradeCosts[id] = Config.GetUpgradeCost(id, data.Upgrades[id] or 0)
@@ -134,6 +118,10 @@ local function buildState(data)
 		ClickGain = Config.GetClickGain(data),
 		AutoGain = Config.GetAutoGain(data),
 		RebirthCost = Config.GetRebirthCost(data.Rebirths),
+		RngEggs = data.RngEggs,
+		BestEgg = bestEgg and bestEgg.Name or nil,
+		EggBoost = eggBoost,
+		Luck = Config.GetLuck(data),
 	}
 end
 
@@ -291,6 +279,46 @@ RebirthRemote.OnServerEvent:Connect(function(player)
 	sync(player)
 end)
 
+-- RNG egg roll: check from the rarest egg down. Luck multiplies every chance.
+local function rollRngEgg(luck)
+	for i = #Config.RngEggs, 2, -1 do
+		local egg = Config.RngEggs[i]
+		if rng:NextNumber() < luck / egg.Chance then
+			return egg
+		end
+	end
+	return Config.RngEggs[1]
+end
+
+RollEggRemote.OnServerEvent:Connect(function(player)
+	local data = DataService.Get(player)
+	if not data then
+		return
+	end
+	local now = os.clock()
+	if lastRoll[player] and now - lastRoll[player] < Config.RollCooldown - 0.1 then
+		return -- too fast
+	end
+	lastRoll[player] = now
+
+	local oldBoost = Config.GetBestEgg(data)
+	local egg = rollRngEgg(Config.GetLuck(data))
+	local count = data.RngEggs[egg.Name] or 0
+	data.RngEggs[egg.Name] = count + 1
+
+	RollResultRemote:FireClient(player, egg.Name, count == 0)
+	if egg.Boost > oldBoost then
+		notify(player, "NEW BEST EGG! " .. egg.Name .. " gives x" .. Util.FormatMultiplier(egg.Boost) .. " Stardust!", "rare")
+	end
+	if egg.Chance >= Config.AnnounceChance then
+		NotifyRemote:FireAllClients(
+			player.DisplayName .. " rolled a " .. egg.Name .. " (1 in " .. Util.FormatCommas(egg.Chance) .. ")!",
+			"rare"
+		)
+	end
+	sync(player)
+end)
+
 RequestStateRemote.OnServerEvent:Connect(function(player)
 	sync(player)
 end)
@@ -330,9 +358,10 @@ local function onPlayerRemoving(player)
 	DataService.Release(player)
 	leaderstatsValues[player] = nil
 	clickTracker[player] = nil
+	lastRoll[player] = nil
 end
 
-setupWorld()
+MapBuilder.Build()
 createStarCrystal()
 
 Players.PlayerAdded:Connect(onPlayerAdded)

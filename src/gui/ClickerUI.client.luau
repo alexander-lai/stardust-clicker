@@ -20,6 +20,8 @@ local RebirthRemote = Remotes:WaitForChild("Rebirth")
 local RequestStateRemote = Remotes:WaitForChild("RequestState")
 local StateUpdateRemote = Remotes:WaitForChild("StateUpdate")
 local NotifyRemote = Remotes:WaitForChild("Notify")
+local RollEggRemote = Remotes:WaitForChild("RollEgg")
+local RollResultRemote = Remotes:WaitForChild("RollResult")
 
 -- Use the ScreenGui we live in; if pasted somewhere else, make one.
 local screenGui = script.Parent
@@ -163,6 +165,8 @@ local function showToast(message, kind)
 		toast.BackgroundColor3 = COLORS.Red
 	elseif kind == "success" then
 		toast.BackgroundColor3 = COLORS.Green
+	elseif kind == "rare" then
+		toast.BackgroundColor3 = COLORS.Pink
 	else
 		toast.BackgroundColor3 = COLORS.PanelLight
 	end
@@ -321,9 +325,8 @@ end)
 ---------------------------------------------------------------------------
 local petsPanel = make("Frame", {
 	Name = "Pets",
-	AnchorPoint = Vector2.new(0, 0.5),
-	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.new(0, 220, 0, 320),
+	Position = UDim2.new(0, 10, 0, 60),
+	Size = UDim2.new(0, 230, 0, 280),
 	BackgroundColor3 = COLORS.Panel,
 	Parent = screenGui,
 }, { corner(14), stroke(COLORS.Pink, 3), padding(10) })
@@ -406,6 +409,168 @@ local function refreshPets(pets, equippedCount)
 end
 
 ---------------------------------------------------------------------------
+-- RNG egg roll panel (bottom left) + rolling animation popup
+---------------------------------------------------------------------------
+local rngPanel = make("Frame", {
+	Name = "EggRoll",
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 10, 1, -10),
+	Size = UDim2.new(0, 230, 0, 150),
+	BackgroundColor3 = COLORS.Panel,
+	Parent = screenGui,
+}, { corner(14), stroke(COLORS.Gold, 3), padding(10) })
+
+make("TextLabel", {
+	Size = UDim2.new(1, 0, 0, 24),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.FredokaOne,
+	TextScaled = true,
+	TextColor3 = COLORS.Gold,
+	Text = "🎲 EGG ROLL",
+	Parent = rngPanel,
+})
+
+local bestEggLabel = make("TextLabel", {
+	Position = UDim2.new(0, 0, 0, 26),
+	Size = UDim2.new(1, 0, 0, 20),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.GothamBold,
+	TextScaled = true,
+	TextColor3 = COLORS.Text,
+	Text = "Best: none yet",
+	Parent = rngPanel,
+})
+
+local luckLabel = make("TextLabel", {
+	Position = UDim2.new(0, 0, 0, 48),
+	Size = UDim2.new(1, 0, 0, 18),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.Gotham,
+	TextScaled = true,
+	TextColor3 = COLORS.Text,
+	Text = "Luck x1",
+	Parent = rngPanel,
+})
+
+local rollButton = make("TextButton", {
+	Position = UDim2.new(0, 0, 1, -54),
+	Size = UDim2.new(0.62, -4, 0, 54),
+	BackgroundColor3 = COLORS.Gold,
+	Font = Enum.Font.FredokaOne,
+	TextScaled = true,
+	TextColor3 = Color3.fromRGB(90, 55, 0),
+	Text = "ROLL!",
+	Parent = rngPanel,
+}, { corner(10), padding(8) })
+
+local autoButton = make("TextButton", {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, 0, 1, -54),
+	Size = UDim2.new(0.38, -4, 0, 54),
+	BackgroundColor3 = COLORS.Gray,
+	Font = Enum.Font.FredokaOne,
+	TextScaled = true,
+	TextColor3 = COLORS.Text,
+	Text = "AUTO\nOFF",
+	Parent = rngPanel,
+}, { corner(10), padding(6) })
+
+local rollPopup = make("TextLabel", {
+	Name = "RollPopup",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.new(0.5, 0, 0.42, 0),
+	Size = UDim2.new(0, 420, 0, 90),
+	BackgroundTransparency = 1,
+	Font = Enum.Font.FredokaOne,
+	TextScaled = true,
+	TextStrokeTransparency = 0,
+	RichText = true,
+	Text = "",
+	Visible = false,
+	Parent = screenGui,
+})
+
+local rollingSince = 0
+local autoRoll = false
+local popupId = 0
+
+local function eggInfo(name)
+	for _, egg in ipairs(Config.RngEggs) do
+		if egg.Name == name then
+			return egg
+		end
+	end
+	return nil
+end
+
+local function requestRoll()
+	local now = os.clock()
+	if now - rollingSince < Config.RollCooldown then
+		return
+	end
+	rollingSince = now
+	RollEggRemote:FireServer()
+	rollButton.BackgroundColor3 = COLORS.Gray
+	task.delay(Config.RollCooldown, function()
+		rollButton.BackgroundColor3 = COLORS.Gold
+	end)
+end
+
+rollButton.Activated:Connect(requestRoll)
+autoButton.Activated:Connect(function()
+	autoRoll = not autoRoll
+	autoButton.Text = autoRoll and "AUTO\nON" or "AUTO\nOFF"
+	autoButton.BackgroundColor3 = autoRoll and COLORS.Green or COLORS.Gray
+end)
+
+task.spawn(function()
+	while true do
+		task.wait(0.1)
+		if autoRoll then
+			requestRoll()
+		end
+	end
+end)
+
+-- Flash random egg names, then land on the real result (classic RNG feel).
+RollResultRemote.OnClientEvent:Connect(function(eggName, isNew)
+	popupId = popupId + 1
+	local myId = popupId
+	local egg = eggInfo(eggName)
+	if not egg then
+		return
+	end
+	rollPopup.Visible = true
+	rollPopup.TextTransparency = 0
+	rollPopup.TextStrokeTransparency = 0
+	for _ = 1, 7 do
+		local fake = Config.RngEggs[math.random(1, #Config.RngEggs)]
+		rollPopup.Text = fake.Name
+		rollPopup.TextColor3 = fake.Color
+		task.wait(0.06)
+		if myId ~= popupId then
+			return
+		end
+	end
+	rollPopup.Text = string.format(
+		"%s\n<font size=\"22\">1 in %s%s</font>",
+		egg.Name,
+		Util.FormatCommas(egg.Chance),
+		isNew and "  •  NEW!" or ""
+	)
+	rollPopup.TextColor3 = egg.Color
+	rollPopup.Size = UDim2.new(0, 360, 0, 70)
+	TweenService:Create(rollPopup, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 420, 0, 90),
+	}):Play()
+	task.delay(1.2, function()
+		if myId == popupId then
+			TweenService:Create(rollPopup, TweenInfo.new(0.3), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+		end
+	end)
+end)
+
+---------------------------------------------------------------------------
 -- Update everything when the server sends new numbers
 ---------------------------------------------------------------------------
 local function updateUI(newState)
@@ -418,7 +583,7 @@ local function updateUI(newState)
 		"+%s per click  •  +%s/sec  •  x%s boost",
 		F(state.ClickGain),
 		F(state.AutoGain),
-		Util.FormatMultiplier(state.PetMultiplier * state.RebirthMultiplier)
+		Util.FormatMultiplier(state.PetMultiplier * state.RebirthMultiplier * state.EggBoost)
 	)
 
 	for id, button in pairs(upgradeButtons) do
@@ -456,6 +621,19 @@ local function updateUI(newState)
 		petsBoost.Text = "Pet boost: x" .. Util.FormatMultiplier(state.PetMultiplier)
 	end
 	refreshPets(state.Pets, #state.Equipped)
+
+	local best = state.BestEgg and eggInfo(state.BestEgg)
+	if best then
+		bestEggLabel.Text = string.format("Best: %s (x%s)", best.Name, Util.FormatMultiplier(state.EggBoost))
+		bestEggLabel.TextColor3 = best.Color
+	end
+	local found = 0
+	for _, egg in ipairs(Config.RngEggs) do
+		if (state.RngEggs[egg.Name] or 0) > 0 then
+			found = found + 1
+		end
+	end
+	luckLabel.Text = string.format("Luck x%s  •  Found %d/%d eggs", Util.FormatMultiplier(state.Luck), found, #Config.RngEggs)
 end
 
 StateUpdateRemote.OnClientEvent:Connect(updateUI)

@@ -18,8 +18,10 @@ local TEMPLATE = {
 	Upgrades = {
 		ClickPower = 0,
 		AutoCollector = 0,
+		LuckyStars = 0,
 	},
 	Pets = {},
+	RngEggs = {}, -- [eggName] = how many times rolled
 }
 
 local store = nil

@@ -25,6 +25,17 @@ function Util.FormatNumber(n)
 	return string.format("%.2f%s", value, SUFFIXES[index])
 end
 
+-- 250000 -> "250,000"
+function Util.FormatCommas(n)
+	local text = tostring(math.floor(n))
+	local formatted = text
+	repeat
+		local count
+		formatted, count = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+	until count == 0
+	return formatted
+end
+
 -- 2.5 -> "2.5", 3 -> "3", 1.25 -> "1.25"
 function Util.FormatMultiplier(m)
 	local text = string.format("%.2f", m)

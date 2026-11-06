@@ -31,7 +31,40 @@ Config.Upgrades = {
 		CostGrowth = 1.5,
 		MaxLevel = 200,
 	},
+	LuckyStars = {
+		Order = 3,
+		DisplayName = "Lucky Stars",
+		Description = "+10% luck on egg rolls",
+		BaseCost = 200,
+		CostGrowth = 1.6,
+		MaxLevel = 100,
+	},
 }
+
+---------------------------------------------------------------------------
+-- RNG EGG ROLLS (free, kept forever)
+-- Roll for eggs from common to insanely rare. Your RAREST egg ever found
+-- multiplies all your Stardust. "Chance = 500" means a 1 in 500 roll.
+-- Keep this list ordered from most common to rarest.
+---------------------------------------------------------------------------
+Config.RollCooldown = 1.5 -- seconds between rolls (server enforced)
+Config.AnnounceChance = 1000 -- rolls this rare get announced to the whole server
+
+Config.RngEggs = {
+	{ Name = "Plain Egg", Chance = 1, Boost = 1, Color = Color3.fromRGB(235, 230, 220) },
+	{ Name = "Dusty Egg", Chance = 2, Boost = 1.05, Color = Color3.fromRGB(190, 170, 140) },
+	{ Name = "Shiny Egg", Chance = 5, Boost = 1.1, Color = Color3.fromRGB(200, 230, 255) },
+	{ Name = "Glowing Egg", Chance = 20, Boost = 1.25, Color = Color3.fromRGB(120, 255, 150) },
+	{ Name = "Starlit Egg", Chance = 100, Boost = 1.5, Color = Color3.fromRGB(90, 180, 255) },
+	{ Name = "Nebula Swirl Egg", Chance = 500, Boost = 2, Color = Color3.fromRGB(190, 110, 255) },
+	{ Name = "Supernova Egg", Chance = 2500, Boost = 3, Color = Color3.fromRGB(255, 170, 40) },
+	{ Name = "Galactic Egg", Chance = 10000, Boost = 5, Color = Color3.fromRGB(255, 80, 160) },
+	{ Name = "Black Hole Egg", Chance = 50000, Boost = 10, Color = Color3.fromRGB(150, 60, 255) },
+	{ Name = "Singularity Egg", Chance = 250000, Boost = 25, Color = Color3.fromRGB(40, 255, 220) },
+}
+
+Config.LuckPerLevel = 0.1 -- from Lucky Stars upgrade
+Config.LuckPerRebirth = 0.25 -- rebirths also make you luckier
 
 ---------------------------------------------------------------------------
 -- PETS (kept forever, even through rebirths)
@@ -126,9 +159,26 @@ function Config.GetRebirthMultiplier(rebirths)
 	return 1 + rebirths * Config.Rebirth.BonusPerRebirth
 end
 
+function Config.GetLuck(data)
+	return 1 + (data.Upgrades.LuckyStars or 0) * Config.LuckPerLevel + data.Rebirths * Config.LuckPerRebirth
+end
+
+-- Returns the boost and info of the rarest RNG egg this player has ever rolled.
+function Config.GetBestEgg(data)
+	local found = data.RngEggs or {}
+	for i = #Config.RngEggs, 1, -1 do
+		local egg = Config.RngEggs[i]
+		if (found[egg.Name] or 0) > 0 then
+			return egg.Boost, egg
+		end
+	end
+	return 1, nil
+end
+
 function Config.GetTotalMultiplier(data)
 	local equipped = Config.GetEquippedPets(data.Pets)
-	return Config.GetPetMultiplier(equipped) * Config.GetRebirthMultiplier(data.Rebirths)
+	local eggBoost = Config.GetBestEgg(data)
+	return Config.GetPetMultiplier(equipped) * Config.GetRebirthMultiplier(data.Rebirths) * eggBoost
 end
 
 function Config.GetClickGain(data)

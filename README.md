@@ -4,6 +4,10 @@ An original Roblox clicker simulator: click to collect Stardust, buy upgrades, h
 
 **Core loop:** Click → buy **Bigger Clicks** / **Star Collector** → hatch eggs for pets (your best 3 auto-equip and multiply everything) → **Rebirth** (reset Stardust and upgrades, keep pets, earn +50% forever) → repeat, faster.
 
+**Egg Roll (RNG):** roll for free every 1.5s (or turn on Auto) for 10 eggs from *Plain* (1 in 1) to *Singularity* (1 in 250,000). Your rarest egg ever found multiplies all Stardust, up to x25. **Lucky Stars** upgrades and rebirths raise your luck, and 1-in-1,000+ rolls are announced to the whole server.
+
+**Map:** a colorful candy-space world built in code when the server starts: rainbow plaza, paths and arches, candy trees, glowing crystals, floating islands and planets in the sky.
+
 ## What's in here
 
 ```
@@ -16,7 +20,8 @@ stardust-clicker/
    │   └─ Util.luau              number formatting (1.2K, 3.4M...)
    ├─ server/   → ServerScriptService
    │   ├─ GameServer.server.luau clicks, shop, eggs, rebirth, leaderstats, world
-   │   └─ DataService.luau       DataStore load/save
+   │   ├─ DataService.luau       DataStore load/save
+   │   └─ MapBuilder.luau        builds the colorful map + lighting
    ├─ client/   → StarterPlayer > StarterPlayerScripts
    │   └─ PetFollowers.client.luau pets that orbit your character
    └─ gui/      → StarterGui > MainUI (ScreenGui)
@@ -77,6 +82,7 @@ In Studio's **Explorer** panel (View → Explorer if hidden), hover an object an
 | ReplicatedStorage > Shared | ModuleScript | `Util` | `src/shared/Util.luau` |
 | ServerScriptService | Script | `GameServer` | `src/server/GameServer.server.luau` |
 | ServerScriptService | ModuleScript | `DataService` | `src/server/DataService.luau` |
+| ServerScriptService | ModuleScript | `MapBuilder` | `src/server/MapBuilder.luau` |
 | StarterPlayer > StarterPlayerScripts | LocalScript | `PetFollowers` | `src/client/PetFollowers.client.luau` |
 | StarterGui | ScreenGui | `MainUI` | (then untick **ResetOnSpawn** in Properties) |
 | StarterGui > MainUI | LocalScript | `ClickerUI` | `src/gui/ClickerUI.client.luau` |
@@ -93,6 +99,7 @@ Press **Play** (or F5). Then check:
 - [ ] **Star Collector** gives Stardust every second without clicking.
 - [ ] At 100 Stardust, hatch a **Space Egg**: a message appears, the pet shows in the left panel, and a glowing ball orbits you.
 - [ ] At 10K Stardust, **Rebirth** resets Stardust and upgrades but keeps pets, and the boost goes up.
+- [ ] **ROLL!** shows a rolling animation and lands on an egg; a new best egg raises the boost in the top bar. **AUTO** keeps rolling.
 - [ ] Stop, press Play again: your progress is still there (only if you did Step 2).
 
 Problems? Open **View → Output**. Red text = an error with the script name and line number. Most issues are a misnamed object in Option B.
@@ -107,7 +114,7 @@ Problems? Open **View → Output**. Red text = an error with the script name and
 rojo build default.project.json -o StardustClicker.rbxlx
 ```
 
-The world looks empty in edit mode. That's expected: the server creates the ground, spawn point and Star Crystal when the game starts.
+The world looks empty in edit mode. That's expected: the server builds the map, spawn point and Star Crystal when the game starts.
 
 1. Open the place in Studio (**File → Open from File** → `StardustClicker.rbxlx`) and press **Play** once to check it works.
 2. **File → Publish to Roblox** → **Create new experience** → name *Stardust Clicker*, genre *Simulation*, pick devices (Computer, Phone, Tablet) → **Create**.
@@ -117,6 +124,8 @@ The world looks empty in edit mode. That's expected: the server creates the grou
    - Under **Settings / Audience**, switch it from Private to **Public**.
    - Optional: upload an **icon** (512×512) and **thumbnails** so it looks good in search.
 5. Click **Play** on the experience page to play the live version and share the link with friends.
+
+**Updating an already-published game with a new build:** open the new `StardustClicker.rbxlx`, then **File → Publish As…** and pick your existing *Stardust Clicker* (not a new experience) to overwrite it.
 
 **Updating later:** open the published place in Studio (it shows in Studio's home screen), run `rojo serve` and connect the plugin so your changes sync in, then **File → Publish to Roblox** (Alt+P) again.
 

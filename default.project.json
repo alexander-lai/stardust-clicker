@@ -8,13 +8,33 @@
       },
       "Remotes": {
         "$className": "Folder",
-        "Click": { "$className": "RemoteEvent" },
-        "BuyUpgrade": { "$className": "RemoteEvent" },
-        "HatchEgg": { "$className": "RemoteEvent" },
-        "Rebirth": { "$className": "RemoteEvent" },
-        "RequestState": { "$className": "RemoteEvent" },
-        "StateUpdate": { "$className": "RemoteEvent" },
-        "Notify": { "$className": "RemoteEvent" }
+        "Click": {
+          "$className": "RemoteEvent"
+        },
+        "BuyUpgrade": {
+          "$className": "RemoteEvent"
+        },
+        "HatchEgg": {
+          "$className": "RemoteEvent"
+        },
+        "Rebirth": {
+          "$className": "RemoteEvent"
+        },
+        "RequestState": {
+          "$className": "RemoteEvent"
+        },
+        "StateUpdate": {
+          "$className": "RemoteEvent"
+        },
+        "Notify": {
+          "$className": "RemoteEvent"
+        },
+        "RollEgg": {
+          "$className": "RemoteEvent"
+        },
+        "RollResult": {
+          "$className": "RemoteEvent"
+        }
       }
     },
     "ServerScriptService": {
