@@ -99,6 +99,27 @@ Problems? Open **View → Output**. Red text = an error with the script name and
 
 **Tip:** to test faster, temporarily change `BaseClickGain = 1` to `1000` in `Config.luau`.
 
+## Publish to Roblox (make it playable for everyone)
+
+**Shortcut:** instead of Step 3, build one ready-made place file and open it in Studio:
+
+```powershell
+rojo build default.project.json -o StardustClicker.rbxlx
+```
+
+The world looks empty in edit mode. That's expected: the server creates the ground, spawn point and Star Crystal when the game starts.
+
+1. Open the place in Studio (**File → Open from File** → `StardustClicker.rbxlx`) and press **Play** once to check it works.
+2. **File → Publish to Roblox** → **Create new experience** → name *Stardust Clicker*, genre *Simulation*, pick devices (Computer, Phone, Tablet) → **Create**.
+3. Optional, for testing saves in Studio: **Game Settings → Security → Enable Studio Access to API Services**. Saving always works in the live game.
+4. Go to **https://create.roblox.com/dashboard/creations**, click your experience, and:
+   - Fill out the **Maturity & Compliance** questionnaire. Roblox requires it before an experience can go public. Answer honestly: this game has no violence, chat features beyond the default, or paid items.
+   - Under **Settings / Audience**, switch it from Private to **Public**.
+   - Optional: upload an **icon** (512×512) and **thumbnails** so it looks good in search.
+5. Click **Play** on the experience page to play the live version and share the link with friends.
+
+**Updating later:** open the published place in Studio (it shows in Studio's home screen), run `rojo serve` and connect the plugin so your changes sync in, then **File → Publish to Roblox** (Alt+P) again.
+
 ## Step 5: Make it yours
 
 Everything is in `src/shared/Config.luau`: add pets, change egg odds, prices, rebirth bonus. Ideas for next features:
